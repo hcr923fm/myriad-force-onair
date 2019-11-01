@@ -1,9 +1,9 @@
-env:
-  matrix:
-    - GENERATOR_STRING: "Visual Studio 15 2017 Win64"
-    - GENERATOR_STRING: "Visual Studio 15 2017"
+win_build_task:
+  env:
+    matrix:
+      - GENERATOR_STRING: "Visual Studio 15 2017 Win64"
+      - GENERATOR_STRING: "Visual Studio 15 2017"
 
-win_build:
   windows_container:
     dockerfile: .ci/Dockerfile
     os_version: 2019
