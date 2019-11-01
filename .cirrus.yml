@@ -14,4 +14,4 @@ win_build_task:
     - cmake --build .
 
   package_artifacts:
-    path: __build
+    path: __build/Debug/*
