@@ -1,0 +1,17 @@
+win_build:
+  env:
+    matrix:
+      - GENERATOR_STRING: "Visual Studio 15 2017 Win64"
+      - GENERATOR_STRING: "Visual Studio 15 2017"
+
+  windows_container:
+    dockerfile: .ci/Dockerfile
+    os_version: 2019
+
+  build_script:
+    - mkdir __build && cd __build
+    - cmake -G %GENERATOR_STRING% ..
+    - cmake --build .
+
+  package_artifacts:
+    - path: __build
