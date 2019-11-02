@@ -24,4 +24,4 @@ win_build_task:
     - cmake --build . --config Release
 
   package_artifacts:
-    path: __build/Debug/*
+    path: __build/*
