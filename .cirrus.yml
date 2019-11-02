@@ -3,6 +3,9 @@ win_build_task:
     matrix:
       - GENERATOR_STRING: "Visual Studio 15 2017 Win64"
       - GENERATOR_STRING: "Visual Studio 15 2017"
+      - WIN_API_VERSION: 8.1
+      - WIN_API_VERSION: 10
+      - WIN_API_VERSION: 7.1
 
   windows_container:
     dockerfile: .ci/Dockerfile
