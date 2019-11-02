@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.7)
+set(CMAKE_SYSTEM_VERSION $ENV{WIN_API_VERSION})
 project(force-myriad-onair CXX)
 
 set(CMAKE_CXX_STANDARD 11)

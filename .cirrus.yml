@@ -20,7 +20,7 @@ win_build_task:
 
   build_script:
     - mkdir __build && cd __build
-    - cmake -G "%GENERATOR_STRING%" ..
+    - cmake -G "%GENERATOR_STRING%" .. -DCMAKE_BUILD_TYPE=Release
     - cmake --build .
 
   package_artifacts:
