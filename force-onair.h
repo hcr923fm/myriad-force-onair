@@ -1,16 +1,16 @@
 #ifndef __FORCE_ONAIR_H
 #define __FORCE_ONAIR_H__
 
-#include <iostream>
-#include "bdaqctrl.h"
+#include "myriad-controller.h"
+#include "gpio-handler.h"
+#include <vector>
 #include <signal.h>
+// #include <boost/program-options> // TODO: install program_options
 
-using namespace Automation::BDaq;
-using namespace std;
+vector<MyriadInstance *> myriadInstances;
+int main(int argc, char *argv[]);
 
-int main();
-void BDAQCALL OnDiSnapEvent(void *sender, DiSnapEventArgs *args, void *userParam);
-int checkBioError(ErrorCode ret);
-void signal_handler(int signal);
+void onGPIDetect(int signalID);
+bool checkMyriadResponseError(string myriadResponse);
 
 #endif // __FORCE_ONAIR_H__

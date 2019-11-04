@@ -11,4 +11,10 @@ include_directories("$PROJECT_SOURCE_DIR"
 )
 
 add_executable(force-myriad-onair
-force-onair.cpp)
+force-onair.cpp
+myriad-controller.cpp
+gpio-handler.cpp)
+
+target_link_libraries(force-myriad-onair PRIVATE
+Ws2_32.lib
+)
