@@ -16,5 +16,5 @@ myriad-controller.cpp
 gpio-handler.cpp)
 
 target_link_libraries(force-myriad-onair PRIVATE
-Ws2_32.lib
+Ws2_32.lib # Winsock libs
 )

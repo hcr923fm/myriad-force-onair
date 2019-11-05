@@ -111,6 +111,17 @@ MyriadInstance::~MyriadInstance()
     if (sock != INVALID_SOCKET)
     {
         // TODO: Socket is connected, so disconnect
-        closesocket(sock);
+        int ret = shutdown(sock, SD_SEND);
+        if (ret == SOCKET_ERROR)
+        {
+            printf("%s:\tFailed to disconnect! %d\n", WSAGetLastError());
+            WSACleanup();
+            return;
+        }
+        else
+        {
+            closesocket(sock);
+            WSACleanup();
+        }
     }
 }
