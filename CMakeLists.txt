@@ -52,7 +52,7 @@ find_package(RapidJSON CONFIG REQUIRED)
 target_include_directories(force-myriad-onair PRIVATE ${RAPIDJSON_INCLUDE_DIRS})
 
 target_link_libraries(force-myriad-onair PRIVATE
-Ws2_32.lib # Winsock libs
+#Ws2_32.lib # Winsock libs
 ${Boost_LIBRARIES}
 ${RapidJSON_LIBRARIES}
 )

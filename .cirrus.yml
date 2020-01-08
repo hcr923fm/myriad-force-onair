@@ -5,14 +5,22 @@ win_build_task:
       #     GENERATOR_STRING: "Visual Studio 15 2017 Win64",
       #     WIN_API_VERSION: 7.1,
       #   }
-      - { GENERATOR_STRING: "Visual Studio 15 2017", WIN_API_VERSION: 7.1 }
+      - {
+          GENERATOR_STRING: "Visual Studio 15 2017",
+          WIN_API_VERSION: 7.1,
+          BITNESS: 86,
+        }
       # - {
       #     GENERATOR_STRING: "Visual Studio 15 2017 Win64",
       #     WIN_API_VERSION: 8.1,
       #   }
       # - { GENERATOR_STRING: "Visual Studio 15 2017", WIN_API_VERSION: 8.1 }
       # - { GENERATOR_STRING: "Visual Studio 15 2017 Win64", WIN_API_VERSION: 10 }
-      - { GENERATOR_STRING: "Visual Studio 15 2017", WIN_API_VERSION: 10 }
+      - {
+          GENERATOR_STRING: "Visual Studio 15 2017",
+          WIN_API_VERSION: 10,
+          BITNESS: 86,
+        }
 
   windows_container:
     dockerfile: .ci/Dockerfile
