@@ -2,10 +2,10 @@
 #define __MYRIAD_CONTROLLER_H__
 
 #include <string>
-#include <WinSock2.h>
-#include <iphlpapi.h>
-#include <WS2tcpip.h>
-// #pragma comment(lib, "Ws2_32.lib")
+#include <sstream>
+#include <mutex>
+#include <boost/asio.hpp>
+#include <boost/array.hpp>
 
 using namespace std;
 
@@ -18,20 +18,28 @@ enum MyriadConnectionTypes
 class MyriadInstance
 {
 public:
-    MyriadInstance(string ip_address, MyriadConnectionTypes connection_type);
+    MyriadInstance(string ip_address, MyriadConnectionTypes connection_type); //,
+                                                                              //boost::asio::io_context *ioc = nullptr, shared_ptr<boost::asio::ip::tcp::socket> sock = nullptr);
     virtual ~MyriadInstance();
 
     bool connectInstance();
     string sendCommand(string command);
     string MyriadInstance::receiveLine();
     string getIPAddress();
+    void takeCommsLock();
+    void releaseCommsLock();
 
 private:
-    WSADATA wsaData;
     string _ip_address;
     MyriadConnectionTypes connType;
+    shared_ptr<boost::asio::ip::tcp::socket> socket;
+    shared_ptr<boost::asio::io_context> io_context;
+    mutex commsMutex;
+    mutex ownershipMutex;
+    unique_lock<mutex> ownershipLock;
+    boost::system::error_code ec;
 
-    SOCKET sock;
+    inline void checkBoostError();
 };
 
 #endif

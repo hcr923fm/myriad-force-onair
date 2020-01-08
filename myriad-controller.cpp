@@ -1,103 +1,90 @@
 #include "myriad-controller.h"
 
-MyriadInstance::MyriadInstance(string ip_address = "127.0.0.1", MyriadConnectionTypes connection_type = TCP)
+using namespace std;
+
+MyriadInstance::MyriadInstance(string ip_address, MyriadConnectionTypes connection_type) //,
+                                                                                         //boost::asio::io_context *ioc, shared_ptr<boost::asio::ip::tcp::socket> sock)
+//: io_context(ioc),
+// socket(sock)
 {
     connType = connection_type;
     _ip_address = ip_address;
-    sock = INVALID_SOCKET;
+    ownershipLock = unique_lock<mutex>(ownershipMutex, defer_lock);
+    io_context = make_shared<boost::asio::io_context>();
+    socket = make_shared<boost::asio::ip::tcp::socket>(*io_context);
 };
 
 bool MyriadInstance::connectInstance()
 {
-    int ret = WSAStartup(MAKEWORD(2, 2), &wsaData);
-    if (ret != 0)
-    {
-        printf("%s:\tWSAStartup failed: %d\n", _ip_address.c_str(), ret);
-        return false;
-    }
+    printf("%s:\tWaiting for lock...\n", _ip_address.c_str());
+    lock_guard<mutex> l(ownershipMutex);
+    printf("%s:\tResolving host...\n", _ip_address.c_str());
+    unsigned short port = connType == TCP ? 6950 : 6951;
 
-    // Set up information about the address, and store it
-    struct addrinfo *result = NULL, *ptr = NULL, hints;
+    io_context->run(ec);
+    checkBoostError();
 
-    ZeroMemory(&hints, sizeof(hints));
-    hints.ai_family = AF_UNSPEC;
-    hints.ai_family = SOCK_STREAM;
-    hints.ai_protocol = connType == TCP ? IPPROTO_TCP : IPPROTO_UDP;
+    boost::asio::ip::tcp::resolver resolver(*io_context);
+    char portStr[6];
+    _itoa_s(port, portStr, 10);
 
-    // Try and parse the address and port
-    char *port_str = connType == TCP ? "6950" : "6951";
-    ret = getaddrinfo(_ip_address.c_str(), port_str, &hints, &result);
-    if (ret != 0)
-    {
-        printf("%s:\tgetaddrinfo failed: %d\n", _ip_address.c_str(), ret);
-        WSACleanup();
-        return false;
-    }
+    printf("%s:\tConnecting socket...\n", _ip_address.c_str());
+    boost::asio::ip::tcp::endpoint ep(boost::asio::ip::address_v4::from_string(_ip_address), port);
 
-    // Create the socket with the parse address information
-    ptr = result;
-    sock = socket(ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);
+    socket->connect(ep, ec);
+    checkBoostError();
 
-    if (sock == INVALID_SOCKET)
-    {
-        printf("%s:\tError at socket(): %ld\n", _ip_address.c_str(), WSAGetLastError());
-        freeaddrinfo(result);
-        WSACleanup();
-        return false;
-    }
+    // boost::asio::connect(socket, ep);
 
-    // And try and connect
-    ret = connect(sock, ptr->ai_addr, (int)ptr->ai_addrlen);
-    if (ret = SOCKET_ERROR)
-    {
-        // Couldn't connect
-        closesocket(sock);
-        sock = INVALID_SOCKET;
-    }
-
-    freeaddrinfo(result);
-    if (sock == INVALID_SOCKET)
-    {
-        printf("%s:\tUnable to connect to server!\n", _ip_address.c_str());
-        WSACleanup();
-        return false;
-    }
-
+    printf("Receiving connection string...\n");
     string resp = receiveLine();
-    printf("%s:\tRecv:\t%s\n", _ip_address.c_str(), resp.c_str());
 
     return true;
 };
 
 string MyriadInstance::sendCommand(string command)
 {
-    constexpr int bufferLength = 1024;
-    int ret = send(sock, command.c_str(), command.length(), 0);
-    if (ret == SOCKET_ERROR)
+    checkBoostError();
+    printf("%s:\tWaiting for comms lock...\n", this->_ip_address.c_str());
+    unique_lock<mutex> lk(commsMutex);
+
+    if (command.rfind("\n") == string::npos)
     {
-        printf("%s:\tCould not send command: %s (%d)\n", _ip_address.c_str(), command.c_str(), WSAGetLastError());
-        return nullptr;
-    }
-    printf("%s:\tSent:\t%s\n", _ip_address.c_str(), command.c_str());
-    return receiveLine();
+        command.append("\n");
+    };
+    printf("%s:\t--> %s\n", _ip_address.c_str(), command.c_str());
+
+    auto buf = boost::asio::buffer(command);
+    // socket.send(buf, 0, ec);
+    boost::asio::write(*socket, buf, ec);
+    checkBoostError();
+
+    lk.unlock();
+    string resp = receiveLine();
+    return resp;
 }
 
 string MyriadInstance::receiveLine()
 {
-    string response = "";
-    char recv_buf[1];
-    while (recv_buf != "\n")
-    {
-        recv(sock, recv_buf, 1, 0);
-        response += recv_buf;
-    }
+    printf("%s:\tWaiting for comms lock...\n", this->_ip_address.c_str());
+    scoped_lock<mutex> lk(commsMutex);
+
+    boost::asio::streambuf buf;
+
+    boost::asio::read_until(*socket, buf, "\n");
+    istream response_stream(&buf);
+    string response;
+    getline(response_stream, response);
 
     // Every so often, Myriad will send the instant cart updates - discard these
-    if (response.find("SET IC CURRENTITEM") != string::npos)
+    if (response.find("SET IC CURRENTITEM") != string::npos || response.find("CURRENTSETINFO") != string::npos)
     {
+        // lk.~scoped_lock();
+        delete &lk;
         printf("%s:\tDropping SET IC message...\n", _ip_address.c_str());
         response = receiveLine();
     }
+    printf("%s:\t<-- %s\n", _ip_address.c_str(), response.c_str());
     return response;
 }
 
@@ -106,22 +93,28 @@ string MyriadInstance::getIPAddress()
     return _ip_address;
 }
 
+void MyriadInstance::takeCommsLock()
+{
+    ownershipLock.lock();
+}
+
+void MyriadInstance::releaseCommsLock()
+{
+    ownershipLock.unlock();
+}
+
+inline void MyriadInstance::checkBoostError()
+{
+    if (ec)
+    {
+        printf("%s:\tERROR - Category: %s; Value: %d; Message: %s\n", _ip_address.c_str(), ec.category().name(), ec.value(), ec.message().c_str());
+    }
+    ec.clear();
+}
+
 MyriadInstance::~MyriadInstance()
 {
-    if (sock != INVALID_SOCKET)
-    {
-        // TODO: Socket is connected, so disconnect
-        int ret = shutdown(sock, SD_SEND);
-        if (ret == SOCKET_ERROR)
-        {
-            printf("%s:\tFailed to disconnect! %d\n", WSAGetLastError());
-            WSACleanup();
-            return;
-        }
-        else
-        {
-            closesocket(sock);
-            WSACleanup();
-        }
-    }
+    socket->shutdown(boost::asio::socket_base::shutdown_both);
+    socket = nullptr;
+    io_context = nullptr;
 }
