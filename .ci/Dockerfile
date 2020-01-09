@@ -1,6 +1,7 @@
 FROM cirrusci/windowsservercore:cmake
+RUN choco update all -y
 RUN choco upgrade -y visualstudio2017community visualstudio2017-workload-vctools
-RUN choco install -y visualstudio2017-workload-nativedesktop aria2
+RUN choco install -y visualstudio2017-workload-nativedesktop
 
 WORKDIR C:/
 RUN git clone https://github.com/Microsoft/vcpkg.git
